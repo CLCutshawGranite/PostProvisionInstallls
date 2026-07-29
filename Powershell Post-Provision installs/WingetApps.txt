@@ -1,0 +1,16 @@
+Famatech.AdvancedIPScanner
+Bitwarden.Bitwarden
+Logitech.OptionsPlus
+Termius.Termius
+Devolutions.UniGetUI
+Microsoft.PowerShell
+Pingman.PingPlotter
+SpriteOvO.AirPodsDesktop
+SpeedCrunch.SpeedCrunch
+Microsoft.WSL
+Debian.Debian
+OffSec.KaliLinux
+GitHub.GitHubDesktop
+f3d-app.f3d
+Apple.iCloud
+Microsoft.PowerAutomateDesktop
