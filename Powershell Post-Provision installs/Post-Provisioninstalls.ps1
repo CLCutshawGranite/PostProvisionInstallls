@@ -2,11 +2,19 @@
 # Post-Provision Software Installation Script
 # ============================================
 
-# Winget application list
-$wingetFile = "C:\Users\clcutshaw\OneDrive - Granite School District\Documents\Scripts\Powershell Post-Provision installs\WingetApps.txt"
+# Determine script directory (works when run with -File or from a module)
+if ($PSVersionTable.PSVersion) {
+    # Prefer $PSScriptRoot when available (script executed with -File)
+    if ($PSScriptRoot) { $scriptDir = $PSScriptRoot } else { $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition }
+} else {
+    $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
+}
 
-# PowerShell module list
-$moduleFile = "C:\Users\clcutshaw\OneDrive - Granite School District\Documents\Scripts\Powershell Post-Provision installs\PwshApps.txt"
+# Winget application list (relative to script directory)
+$wingetFile = Join-Path $scriptDir 'WingetApps.txt'
+
+# PowerShell module list (relative to script directory)
+$moduleFile = Join-Path $scriptDir 'PwshApps.txt'
 
 # ============================================
 # Verify Winget Availability
@@ -47,11 +55,16 @@ Write-Host "========================================" -ForegroundColor Green -Ba
 Write-Host "Installing / Updating Winget Applications" -ForegroundColor Green -BackgroundColor Black
 Write-Host "========================================" -ForegroundColor Green -BackgroundColor Black
 
-$apps = @(Get-Content $wingetFile |
-    Where-Object {
-        $_.Trim() -ne "" -and
-        -not $_.Trim().StartsWith("#")
-    })
+$apps = @()
+if (Test-Path -Path $wingetFile) {
+    $apps = @(Get-Content $wingetFile |
+        Where-Object {
+            $_.Trim() -ne "" -and
+            -not $_.Trim().StartsWith("#")
+        })
+} else {
+    Write-Host "Winget apps file not found at $wingetFile" -ForegroundColor Yellow -BackgroundColor Black
+}
 
 $totalApps = $apps.Count
 $currentApp = 0
@@ -64,9 +77,24 @@ foreach ($app in $apps) {
     Write-Host ""
     Write-Host "[$currentApp/$totalApps] Processing: $app" -ForegroundColor Green -BackgroundColor Black
 
-    winget install --id $app -e --silent --accept-package-agreements --accept-source-agreements
+    # Check whether the package is already installed. Use winget list and examine output.
+    try {
+        $listOutput = (& winget list --id $app) 2>$null
+    }
+    catch {
+        $listOutput = $null
+    }
 
-    winget upgrade --id $app -e --silent --accept-package-agreements --accept-source-agreements
+    if ($listOutput -and $listOutput.Trim() -ne "") {
+        # Package appears installed -> try upgrade
+        Write-Host "Package appears installed. Attempting upgrade: $app" -ForegroundColor Green -BackgroundColor Black
+        winget upgrade --id $app -e --silent --accept-package-agreements --accept-source-agreements
+    }
+    else {
+        # Not installed -> install
+        Write-Host "Package not found. Installing: $app" -ForegroundColor Green -BackgroundColor Black
+        winget install --id $app -e --silent --accept-package-agreements --accept-source-agreements
+    }
 }
 
 # ============================================
@@ -131,11 +159,16 @@ Write-Host "========================================" -ForegroundColor Green -Ba
 Write-Host "Installing / Updating PowerShell Modules" -ForegroundColor Green -BackgroundColor Black
 Write-Host "========================================" -ForegroundColor Green -BackgroundColor Black
 
-$modules = @(Get-Content $moduleFile |
-    Where-Object {
-        $_.Trim() -ne "" -and
-        -not $_.Trim().StartsWith("#")
-    })
+$modules = @()
+if (Test-Path -Path $moduleFile) {
+    $modules = @(Get-Content $moduleFile |
+        Where-Object {
+            $_.Trim() -ne "" -and
+            -not $_.Trim().StartsWith("#")
+        })
+} else {
+    Write-Host "PowerShell modules file not found at $moduleFile" -ForegroundColor Yellow -BackgroundColor Black
+}
 
 $totalModules = $modules.Count
 $currentModule = 0
